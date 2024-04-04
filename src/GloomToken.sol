@@ -10,8 +10,7 @@ import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
 /// @title The Gloom token
 contract GloomToken is ERC20, ERC20Burnable, ERC20Permit, ERC20Votes {
     /**
-     * @dev Constructor that initializes the Gloom token.
-     * The initial supply of 1,000,000,000 is minted to the specified address.
+     * Initial supply of 1,000,000,000 tokens.
      * @param mintAddress Address to mint initial supply to.
      */
     constructor(
