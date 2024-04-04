@@ -39,11 +39,16 @@ contract MigrationTest is Test {
     function setUp() public {
         oldGloom = IERC20Reflection(0x4Ff77748E723f0d7B161f90B4bc505187226ED0D);
         gloomMigrator = new GloomMigrator(oldGloom);
-        newGloom = new GloomToken(address(gloomMigrator)); // deploy the new token, send supply to migrator
+        newGloom = new GloomToken(address(gloomMigrator));
         gloomMigrator.initialize(IERC20(newGloom));
     }
 
-    function testMigration() public {
+    function testBulkMigrations() public {
+        uint256 initalBurnAddressBalance = oldGloom.balanceOf(
+            gloomMigrator.BURN_ADDRESS()
+        );
+        uint256 holderBalanceAccumulator = 0;
+
         for (uint256 i = 0; i < holders.length; i++) {
             address account = holders[i];
             uint256 initialBalance = oldGloom.balanceOf(account);
@@ -55,14 +60,48 @@ contract MigrationTest is Test {
             gloomMigrator.migrateTokens(initialBalance);
             vm.stopPrank();
 
-            uint256 newBalance = newGloom.balanceOf(account);
-            console.log("Migrated", initialBalance, "tokens to", account);
-            console.log("New token balance:", newBalance);
-            assertEq(newBalance, initialBalance);
+            holderBalanceAccumulator += initialBalance;
 
-            uint256 oldBalance = oldGloom.balanceOf(account);
-            console.log("Old token balance:", oldBalance);
-            assertEq(oldBalance, 0);
+            uint256 newTokenBalanceAfterMigration = newGloom.balanceOf(account);
+            assertEq(newTokenBalanceAfterMigration, initialBalance); // check that the balance is the same
+
+            uint256 oldTokenBalanceAfterMigration = oldGloom.balanceOf(account);
+            assertEq(oldTokenBalanceAfterMigration, 0);
         }
+
+        uint256 burnBalanceAfterMigrations = oldGloom.balanceOf(
+            gloomMigrator.BURN_ADDRESS()
+        );
+
+        uint256 burnAddressTokenDelta = burnBalanceAfterMigrations -
+            initalBurnAddressBalance;
+
+        uint256 difference = holderBalanceAccumulator - burnAddressTokenDelta;
+
+        console.log("Total tokens migrated:", holderBalanceAccumulator);
+        console.log("Burn address balance delta:", burnAddressTokenDelta);
+        console.log("Difference:", difference / 10 ** 18);
     }
+
+    function testMaliciousMigrations() public {
+        vm.startPrank(holders[0]);
+        // try to migrate without approval
+        vm.expectRevert();
+        gloomMigrator.migrateTokens(1);
+
+        // try to migrate more tokens than the account has
+        uint256 initialBalance = oldGloom.balanceOf(holders[0]);
+        oldGloom.approve(address(gloomMigrator), initialBalance);
+        vm.expectRevert();
+        gloomMigrator.migrateTokens(initialBalance + 1);
+        vm.stopPrank();
+    }
+
+    function testInitializingTwice() public {
+        vm.expectRevert();
+        gloomMigrator.initialize(IERC20(newGloom));
+    }
+
+    function test
+
 }
