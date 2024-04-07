@@ -28,7 +28,7 @@ contract GloomMigrator {
 
     /**
      * @dev Initializes the Gloom token migration contract
-     * Verifies the total supply of the new Gloom token is correct and owned by this contract
+     * Requires total supply of the new Gloom token to be valid and owned by this contract
      * @param newGloomToken_ The new Gloom token contract
      */
     constructor(IERC20 newGloomToken_) {
