@@ -4,7 +4,7 @@ pragma solidity ^0.8.25;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 /**
- * @title Gloom token migration contract created to remove reflections
+ * @title Gloom token migration contract created for the purpose of removing reflections from the Gloom token
  * @notice Migrating tokens is a one-way process which burns old tokens and cannot be reversed
  */
 contract GloomMigrator {
@@ -23,8 +23,7 @@ contract GloomMigrator {
     event TokensMigrated(address indexed caller, uint256 tokenAmount);
 
     /**
-     * @notice Constructs the migration contract with the new Gloom token contract.
-     * This contract must hold the same amount of new Gloom tokens as the total supply of the old Gloom contract.
+     * @notice Contract must own an equal amount of new Gloom tokens as the total supply of the old Gloom contract
      * @param newGloomToken_ The new Gloom token contract
      */
     constructor(IERC20 newGloomToken_) {
@@ -36,8 +35,7 @@ contract GloomMigrator {
     }
 
     /**
-     * @notice Burn old Gloom tokens in return for an equal amount of new Gloom tokens
-     * Requires token approval to this contract
+     * @notice Burn old Gloom tokens to receive new Gloom tokens, requires approval
      * @param tokenAmount The amount of old tokens to migrate
      */
     function migrateTokens(uint256 tokenAmount) external {
