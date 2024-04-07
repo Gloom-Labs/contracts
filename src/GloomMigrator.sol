@@ -6,56 +6,40 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 /**
  * @title Gloom token migration contract
  * @dev This contract facilitates the migration of tokens from the old Gloom token contract to the new one
- * After initialization, this contract will hold the full token supply of the new Gloom token contract
- * In the migration process, old tokens are sent to the burn address and new Gloom tokens are transfered to the user
- * There is no owner, admin, upgrade, or pause functionality in this contract for maximum simplicity and transparency
+ * To initialize migration, this contract must be minted the total supply of the new Gloom token
+ * There is no owner, admin, upgradability, or pause functionality in this contract
  * @notice Migrating tokens is a one-way process and cannot be reversed
  */
 contract GloomMigrator {
-    /// Old Gloom token contract, tokens to be sent to the burn address during migration
-    IERC20 public oldGloomToken;
+    /// Old Gloom token contract, these tokens will be burned during migration
+    IERC20 public constant oldGloomToken =
+        IERC20(0x4Ff77748E723f0d7B161f90B4bc505187226ED0D);
 
-    /// New Gloom token contract, tokens to be transferred to the user during migration
+    /// New Gloom token contract, these tokens will be sent from the migrator to the caller
     IERC20 public newGloomToken;
 
     /// Low-entropy burn address where old Gloom tokens are sent during migration
     address public constant BURN_ADDRESS =
         0x000000000000000000000000000000000000dEaD;
 
-    /// Event emitted when the contract is initialized with the new Gloom token contract
-    event Initialized(address newGloomToken);
-
-    /// Event emitted when a user migrates their tokens
-    event TokensMigrated(address user, uint256 amount);
+    /// Event emitted when a caller migrates tokens from the old Gloom token contract to the new one
+    event TokensMigrated(address indexed caller, uint256 tokenAmount);
 
     /**
-     * @dev Constructor function that sets the old Gloom token contract
-     * @param oldGloomToken_ IERC20 interface of the old Gloom token contract
+     * @dev Contract must own the same amount of new Gloom tokens as the total supply of the old Gloom token
+     * @param _newGloomToken The new Gloom token contract
      */
-    constructor(IERC20 oldGloomToken_) {
-        oldGloomToken = oldGloomToken_;
-    }
-
-    /**
-     * @dev Initializes the contract with the new Gloom token contract
-     * GloomMigrator must hold the full token supply of the new Gloom token contract
-     * This function can only be called once and will revert on subsequent calls
-     * @param newGloomToken_ IERC20 interface of the new Gloom token contract
-     */
-    function initialize(IERC20 newGloomToken_) external {
-        require(address(newGloomToken) == address(0), "Already initialized");
-        newGloomToken = newGloomToken_;
+    constructor(IERC20 _newGloomToken) {
+        newGloomToken = _newGloomToken;
         require(
             newGloomToken.balanceOf(address(this)) ==
-                newGloomToken.totalSupply(),
-            "Full token supply must be sent to GloomMigrator"
+                oldGloomToken.totalSupply()
         );
-        emit Initialized(address(newGloomToken));
     }
 
     /**
      * @dev Migrate tokens from the old Gloom token contract to the new one
-     * Requires token approval before calling this function
+     * Requires token approval from the caller before calling this function
      * @param tokenAmount The amount of old tokens to migrate
      * @notice Migrating tokens is a one-way process and cannot be reversed
      */

@@ -7,20 +7,29 @@ import {GloomMigrator} from "../src/GloomMigrator.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IERC20Reflection} from "../src/interfaces/IERC20Reflection.sol";
 
+// GLOOM address: 0x4Ff77748E723f0d7B161f90B4bc505187226ED0D
+
 contract DeployMigrationScript is Script {
     function run() public {
         vm.startBroadcast();
 
-        IERC20Reflection oldGloom = IERC20Reflection(
-            0x4Ff77748E723f0d7B161f90B4bc505187226ED0D
-        );
-        GloomMigrator gloomMigrator = new GloomMigrator(oldGloom);
-        GloomToken gloom = new GloomToken(address(gloomMigrator)); // deploy the new token, send supply to migrator
-        gloomMigrator.initialize(IERC20(gloom)); // initialize the migrator
+        uint256 nonce = vm.getNonce(address(this));
 
-        console.log("deployed gloom: ", address(gloom));
-        console.log("deployed gloomMigrator: ", address(gloomMigrator));
-        
+        address computedGloomMigratorAddress = computeCreateAddress(
+            address(this),
+            nonce + 1
+        );
+        GloomToken gloomToken = new GloomToken(computedGloomMigratorAddress); // deploy the new token, send supply to migrator
+        console.log("deployed Gloom: ", address(gloomToken));
+        GloomMigrator gloomMigrator = new GloomMigrator(gloomToken); // deploy the migrator
+        console.log("deployed GloomMigrator: ", address(gloomMigrator));
+
+        uint256 migratorBalance = gloomToken.balanceOf(address(gloomMigrator));
+        console.log(
+            "initialized GloomMigrator with balance: ",
+            migratorBalance / 10 ** 18
+        );
+
         vm.stopBroadcast();
     }
 }

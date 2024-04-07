@@ -32,18 +32,35 @@ contract MigrationTest is Test {
         0x0101a64A09290EC5075e1887EB7B6686e9050DAC
     ];
 
+    address public gloomMigratorDeployer = address(0x01);
+    address public newGloomDeployer = address(0x02);
     IERC20Reflection public oldGloom;
     GloomToken public newGloom;
     GloomMigrator public gloomMigrator;
 
     function setUp() public {
         oldGloom = IERC20Reflection(0x4Ff77748E723f0d7B161f90B4bc505187226ED0D);
-        gloomMigrator = new GloomMigrator(oldGloom);
-        newGloom = new GloomToken(address(gloomMigrator));
-        gloomMigrator.initialize(IERC20(newGloom));
+        uint256 nonce = vm.getNonce(gloomMigratorDeployer);
+        address computedNewGloomAddress = vm.computeCreateAddress(
+            gloomMigratorDeployer,
+            nonce
+        );
+        vm.prank(newGloomDeployer);
+        newGloom = new GloomToken(computedNewGloomAddress);
+        vm.prank(gloomMigratorDeployer);
+        gloomMigrator = new GloomMigrator(newGloom);
     }
 
     function testBulkMigrations() public {
+        assertEq(
+            address(oldGloom),
+            address(gloomMigrator.oldGloomToken()),
+            "Old Gloom token address mismatch"
+        );
+        uint256 newTokenSupply = newGloom.totalSupply();
+        uint256 migratorBalance = newGloom.balanceOf(address(gloomMigrator));
+        assertEq(newTokenSupply, migratorBalance, "Migrator balance mismatch");
+
         uint256 initalBurnAddressBalance = oldGloom.balanceOf(
             gloomMigrator.BURN_ADDRESS()
         );
@@ -96,12 +113,4 @@ contract MigrationTest is Test {
         gloomMigrator.migrateTokens(initialBalance + 1);
         vm.stopPrank();
     }
-
-    function testInitializingTwice() public {
-        vm.expectRevert();
-        gloomMigrator.initialize(IERC20(newGloom));
-    }
-
-    function test
-
 }
