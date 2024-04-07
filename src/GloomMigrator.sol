@@ -11,30 +11,32 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
  * @notice Migrating tokens is a one-way process and cannot be reversed
  */
 contract GloomMigrator {
-    /// Old Gloom token contract, these tokens will be burned during migration
+    /// Old Gloom token contract
     IERC20 public constant oldGloomToken =
         IERC20(0x4Ff77748E723f0d7B161f90B4bc505187226ED0D);
 
-    /// New Gloom token contract, these tokens will be sent from the migrator to the caller
+    /// New Gloom token contract
     IERC20 public newGloomToken;
 
-    /// Low-entropy burn address where old Gloom tokens are sent during migration
+    /// Total supply of the new Gloom token
+    uint256 public constant TOTAL_SUPPLY = 1_000_000_000 * 10 ** 18;
+
+    /// Burn address
     address public constant BURN_ADDRESS =
         0x000000000000000000000000000000000000dEaD;
 
-    /// Event emitted when a caller migrates tokens from the old Gloom token contract to the new one
+    /// Event emitted for each token migration
     event TokensMigrated(address indexed caller, uint256 tokenAmount);
 
     /**
-     * @dev Contract must own the same amount of new Gloom tokens as the total supply of the old Gloom token
-     * @param _newGloomToken The new Gloom token contract
+     * @dev Initializes the Gloom token migration contract
+     * Verifies the total supply of the new Gloom token is correct and owned by this contract
+     * @param newGloomToken_ The new Gloom token contract
      */
-    constructor(IERC20 _newGloomToken) {
-        newGloomToken = _newGloomToken;
-        require(
-            newGloomToken.balanceOf(address(this)) ==
-                oldGloomToken.totalSupply()
-        );
+    constructor(IERC20 newGloomToken_) {
+        require(newGloomToken_.totalSupply() == TOTAL_SUPPLY);
+        require(newGloomToken_.balanceOf(address(this)) == TOTAL_SUPPLY);
+        newGloomToken = newGloomToken_;
     }
 
     /**
