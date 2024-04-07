@@ -38,10 +38,9 @@ contract GloomMigrator {
     }
 
     /**
-     * @dev Migrate tokens from the old Gloom token contract to the new one
-     * Requires token approval from the caller before calling this function
+     * @dev Burn old Gloom tokens in return for an equal amount of new Gloom tokens
+     * Requires token approval to this contract
      * @param tokenAmount The amount of old tokens to migrate
-     * @notice Migrating tokens is a one-way process and cannot be reversed
      */
     function migrateTokens(uint256 tokenAmount) external {
         oldGloomToken.transferFrom(msg.sender, BURN_ADDRESS, tokenAmount);
