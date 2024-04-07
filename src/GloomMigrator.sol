@@ -27,7 +27,7 @@ contract GloomMigrator {
     event TokensMigrated(address indexed caller, uint256 tokenAmount);
 
     /**
-     * @dev Initializes the Gloom token migration contract
+     * @dev Construct the migration contract with the new Gloom token contract
      * Requires total supply of the new Gloom token to be valid and owned by this contract
      * @param newGloomToken_ The new Gloom token contract
      */
