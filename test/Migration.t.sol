@@ -54,7 +54,7 @@ contract MigrationTest is Test {
     function testBulkMigrations() public {
         assertEq(
             address(oldGloom),
-            address(gloomMigrator.oldGloomToken()),
+            address(gloomMigrator.OLD_GLOOM_TOKEN()),
             "Old Gloom token address mismatch"
         );
         uint256 newTokenSupply = newGloom.totalSupply();
