@@ -5,9 +5,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 /**
  * @title Gloom token migration contract
- * @dev This contract facilitates the migration of tokens from the old Gloom token contract to the new one
- * To initialize migration, this contract must be minted the total supply of the new Gloom token
- * There is no owner, admin, upgradability, or pause functionality in this contract
+ * @dev Migration contract used for migrating old Gloom tokens to the new Gloom token contract
  * @notice Migrating tokens is a one-way process and cannot be reversed
  */
 contract GloomMigrator {
@@ -18,7 +16,7 @@ contract GloomMigrator {
     /// New Gloom token contract
     IERC20 public newGloomToken;
 
-    /// Total supply of the new Gloom token
+    /// Total supply of the new Gloom token 1 billion (18 decimals)
     uint256 public constant TOTAL_SUPPLY = 1_000_000_000 * 10 ** 18;
 
     /// Burn address
