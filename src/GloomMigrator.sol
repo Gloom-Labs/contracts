@@ -10,7 +10,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
  */
 contract GloomMigrator {
     /// Old Gloom token contract
-    IERC20 public constant oldGloomToken =
+    IERC20 public constant OLD_GLOOM_TOKEN =
         IERC20(0x4Ff77748E723f0d7B161f90B4bc505187226ED0D);
 
     /// New Gloom token contract
@@ -43,7 +43,7 @@ contract GloomMigrator {
      * @param tokenAmount The amount of old tokens to migrate
      */
     function migrateTokens(uint256 tokenAmount) external {
-        oldGloomToken.transferFrom(msg.sender, BURN_ADDRESS, tokenAmount);
+        OLD_GLOOM_TOKEN.transferFrom(msg.sender, BURN_ADDRESS, tokenAmount);
         newGloomToken.transfer(msg.sender, tokenAmount);
         emit TokensMigrated(msg.sender, tokenAmount);
     }
