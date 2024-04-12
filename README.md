@@ -1,18 +1,24 @@
-# Gloom Token Contracts
+# Gloom Contracts
+
+<p align="center">
+<img src="https://github.com/Gloom-Labs/contracts/assets/12901349/b4638853-8646-4d1c-9a85-add838ec9de0" width="200" height="200">
+</p>
 
 ## Overview
 
-This repository contains the new Gloom token contract GloomToken.sol, a OpenZeppelin Governor contract GloomGovernor.sol, and a migrator contract GloomMigrator.sol.
+This repository contains the following contracts:
+- GloomToken.sol (OpenZeppelin ERC20)
+- GloomGovernor.sol (OpenZeppelin Governor)
+- GloomMigrator.sol (Enables migration
+- OldGloom.sol (TaxableTeamToken)
 
-GloomToken.sol is a standard ERC20 with 0% tax and no reflection mechanisms. For maximum transparency and full decentralization, the contract has no owner, no minting functions, and no admin functions, no upgradability. This contract is by default renounced and immutable once deployed.
-
+GloomToken.sol is a standard ERC20 without any tax / reflections. The contract has no owner, no minting functions, no admin functions, and is not upgradable.
+## Token details
 - name: Gloom
 - symbol: GLOOM
 - decimals: 18
 - total supply: 1,000,000,000 (1 billion)
 - tax / reflection: 0%
-
-For maximum transparency and decentralization, the GloomToken contract has no admin functions, no owner, no minting functions. This contract is by default renounced and immutable once deployed.
 
 ## Deployed contracts
 
@@ -22,9 +28,8 @@ For maximum transparency and decentralization, the GloomToken contract has no ad
 
 - GloomMigrator: [0x56A82A3DF3a909a1b4A1B0A418BdFBE7380e78fE](https://basescan.org/address/0x56A82A3DF3a909a1b4A1B0A418BdFBE7380e78fE#code)
 
-## Old Gloom contract
+- Old Gloom Token: [0x4Ff77748E723f0d7B161f90B4bc505187226ED0D](https://basescan.org/address/0x4Ff77748E723f0d7B161f90B4bc505187226ED0D#code)
 
-- TaxableTeamToken: [0x4Ff77748E723f0d7B161f90B4bc505187226ED0D](https://basescan.org/address/0x4Ff77748E723f0d7B161f90B4bc505187226ED0D#code)
 
 ## Setup
 
