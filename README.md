@@ -9,7 +9,7 @@
 This repository contains the following contracts:
 - GloomToken.sol (OpenZeppelin ERC20)
 - GloomGovernor.sol (OpenZeppelin Governor)
-- GloomMigrator.sol (Enables migration
+- GloomMigrator.sol (Burn old tokens to receive new tokens)
 - OldGloom.sol (TaxableTeamToken)
 
 GloomToken.sol is a standard ERC20 without any tax / reflections. The contract has no owner, no minting functions, no admin functions, and is not upgradable.
