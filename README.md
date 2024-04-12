@@ -12,8 +12,9 @@ This repository contains the following contracts:
 - GloomMigrator.sol (Burn old tokens to receive new tokens)
 - OldGloom.sol (TaxableTeamToken)
 
-GloomToken.sol is a standard ERC20 without any tax / reflections. The contract has no owner, no minting functions, no admin functions, and is not upgradable.
+
 ## Token details
+GloomToken.sol is a standard ERC20 without any tax / reflections. The contract has no owner, no minting functions, no admin functions, and is not upgradable.
 - name: Gloom
 - symbol: GLOOM
 - decimals: 18
