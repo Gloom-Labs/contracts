@@ -3,8 +3,9 @@ pragma solidity >=0.6.2 <0.9.0;
 
 import {Test, console} from "forge-std/Test.sol";
 import {GloomToken} from "../src/GloomToken.sol";
+import {GloomGovernor} from "../src/GloomGovernor.sol";
 import {GloomMigrator} from "../src/GloomMigrator.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {IERC20Reflection} from "../src/interfaces/IERC20Reflection.sol";
 
 contract MigrationTest is Test {
@@ -27,28 +28,60 @@ contract MigrationTest is Test {
         0x0076F74CC966fdD705deD40df8aB86604e4b5759,
         0x00de67Aa2735Ff2D2672a79B2aAbD53FcA63e541,
         0x00f23269D914cfC8cF277991C3Bef6e95A7724B4,
-        0x00F7Ff777B7a2633edd8D50Bc831Fbd09Fe9d67F,
-        0x00fB7ccb1f054792252d31b2F6a5D3E923765d02,
-        0x0101a64A09290EC5075e1887EB7B6686e9050DAC
+        0x00F7Ff777B7a2633edd8D50Bc831Fbd09Fe9d67F
     ];
 
-    address public gloomMigratorDeployer = address(0x01);
-    address public newGloomDeployer = address(0x02);
+    address public gloomTokenDeployer =
+        0x42e9c498135431a48796B5fFe2CBC3d7A1811927;
+
+    address public gloomMigratorDeployer =
+        0x000c987F621B3788F84112fa7a1E8B42AB8CC212;
+
     IERC20Reflection public oldGloom;
     GloomToken public newGloom;
     GloomMigrator public gloomMigrator;
+    GloomGovernor public gloomGovernor;
 
     function setUp() public {
         oldGloom = IERC20Reflection(0x4Ff77748E723f0d7B161f90B4bc505187226ED0D);
+
+        // console.log(
+        //     "balance of old gloom:",
+        //     oldGloom.balanceOf(gloomMigratorDeployer)
+        // );
+
         uint256 nonce = vm.getNonce(gloomMigratorDeployer);
+        // compute the address of the gloom migrator contract
+
         address computedNewGloomAddress = vm.computeCreateAddress(
             gloomMigratorDeployer,
             nonce
         );
-        vm.prank(newGloomDeployer);
+        // console.log("Computed address:", computedNewGloomAddress);
+
+        // deploy the new Gloom token and mint the total supply to the migrator
+        vm.prank(gloomTokenDeployer);
         newGloom = new GloomToken(computedNewGloomAddress);
+
+        // deploy the gloom governor
+        vm.prank(gloomTokenDeployer);
+        gloomGovernor = new GloomGovernor(newGloom);
+
+        // deploy the gloom migrator
         vm.prank(gloomMigratorDeployer);
-        gloomMigrator = new GloomMigrator(newGloom);
+        gloomMigrator = new GloomMigrator(newGloom, gloomGovernor);
+    }
+
+    // test balances after deployment
+    function testDeployment() public view {
+        assertEq(
+            address(oldGloom),
+            address(gloomMigrator.OLD_GLOOM_TOKEN()),
+            "Old Gloom token address mismatch"
+        );
+        uint256 newTokenSupply = newGloom.totalSupply();
+        uint256 migratorBalance = newGloom.balanceOf(address(gloomMigrator));
+        assertEq(newTokenSupply, migratorBalance, "Migrator balance mismatch");
     }
 
     function testBulkMigrations() public {
@@ -60,12 +93,10 @@ contract MigrationTest is Test {
         uint256 newTokenSupply = newGloom.totalSupply();
         uint256 migratorBalance = newGloom.balanceOf(address(gloomMigrator));
         assertEq(newTokenSupply, migratorBalance, "Migrator balance mismatch");
-
         uint256 initalBurnAddressBalance = oldGloom.balanceOf(
             gloomMigrator.BURN_ADDRESS()
         );
         uint256 holderBalanceAccumulator = 0;
-
         for (uint256 i = 0; i < holders.length; i++) {
             address account = holders[i];
             uint256 initialBalance = oldGloom.balanceOf(account);
@@ -76,12 +107,9 @@ contract MigrationTest is Test {
             oldGloom.approve(address(gloomMigrator), initialBalance);
             gloomMigrator.migrateTokens(initialBalance);
             vm.stopPrank();
-
             holderBalanceAccumulator += initialBalance;
-
             uint256 newTokenBalanceAfterMigration = newGloom.balanceOf(account);
             assertEq(newTokenBalanceAfterMigration, initialBalance); // check that the balance is the same
-
             uint256 oldTokenBalanceAfterMigration = oldGloom.balanceOf(account);
             assertEq(oldTokenBalanceAfterMigration, 0);
         }
@@ -111,6 +139,16 @@ contract MigrationTest is Test {
         oldGloom.approve(address(gloomMigrator), initialBalance);
         vm.expectRevert();
         gloomMigrator.migrateTokens(initialBalance + 1);
+        vm.stopPrank();
+    }
+
+    function testMigrationPeriod() public {
+        uint256 initialBalance = oldGloom.balanceOf(holders[0]);
+        oldGloom.approve(address(gloomMigrator), initialBalance);
+        vm.startPrank(holders[0]);
+        vm.expectRevert();
+        // try to migrate before the migration period ends
+        gloomMigrator.migrateTokens(initialBalance);
         vm.stopPrank();
     }
 }
