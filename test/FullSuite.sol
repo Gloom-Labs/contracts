@@ -50,6 +50,8 @@ contract MigrationTest is Test {
     GloomGovernor public gloomGovernor;
 
     function setUp() public {
+        vm.createSelectFork("https://mainnet.base.org");
+        vm.rollFork(12800000);
         oldGloom = IERC20Reflection(0x4Ff77748E723f0d7B161f90B4bc505187226ED0D);
 
         // 1. COMPUTE GLOOMMIGRATOR ADDRESS

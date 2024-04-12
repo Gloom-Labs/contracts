@@ -1,19 +1,32 @@
-## Foundry
+# Gloom Token Contracts
 
-**Foundry is a blazing fast, portable and modular toolkit for Ethereum application development written in Rust.**
+## Overview
 
-Foundry consists of:
+This repository contains the new Gloom token contract GloomToken.sol, a OpenZeppelin Governor contract GloomGovernor.sol, and a migrator contract GloomMigrator.sol.
 
--   **Forge**: Ethereum testing framework (like Truffle, Hardhat and DappTools).
--   **Cast**: Swiss army knife for interacting with EVM smart contracts, sending transactions and getting chain data.
--   **Anvil**: Local Ethereum node, akin to Ganache, Hardhat Network.
--   **Chisel**: Fast, utilitarian, and verbose solidity REPL.
+GloomToken.sol is a standard ERC20 with 0% tax and no reflection mechanisms. For maximum transparency and full decentralization, the contract has no owner, no minting functions, and no admin functions, no upgradability. This contract is by default renounced and immutable once deployed.
 
-## Documentation
+- name: Gloom
+- symbol: GLOOM
+- decimals: 18
+- total supply: 1,000,000,000 (1 billion)
+- tax / reflection: 0%
 
-https://book.getfoundry.sh/
+For maximum transparency and decentralization, the GloomToken contract has no admin functions, no owner, no minting functions. This contract is by default renounced and immutable once deployed.
 
-## Usage
+## Deployed contracts
+
+- GloomToken: [0xbb5D04c40Fa063FAF213c4E0B8086655164269Ef](https://basescan.org/address/0xbb5D04c40Fa063FAF213c4E0B8086655164269Ef#code)
+
+- GloomGovernor: [0xFc8c580f1AfAaC016cBb45c1ced7F73F7DBa1FEc](https://basescan.org/address/0xFc8c580f1AfAaC016cBb45c1ced7F73F7DBa1FEc#code)
+
+- GloomMigrator: [0x56A82A3DF3a909a1b4A1B0A418BdFBE7380e78fE](https://basescan.org/address/0x56A82A3DF3a909a1b4A1B0A418BdFBE7380e78fE#code)
+
+## Old Gloom contract
+
+- TaxableTeamToken: [0x4Ff77748E723f0d7B161f90B4bc505187226ED0D](https://basescan.org/address/0x4Ff77748E723f0d7B161f90B4bc505187226ED0D#code)
+
+## Setup
 
 ### Build
 
@@ -25,42 +38,4 @@ $ forge build
 
 ```shell
 $ forge test
-```
-
-### Format
-
-```shell
-$ forge fmt
-```
-
-### Gas Snapshots
-
-```shell
-$ forge snapshot
-```
-
-### Anvil
-
-```shell
-$ anvil
-```
-
-### Deploy
-
-```shell
-$ forge script script/Counter.s.sol:CounterScript --rpc-url <your_rpc_url> --private-key <your_private_key>
-```
-
-### Cast
-
-```shell
-$ cast <subcommand>
-```
-
-### Help
-
-```shell
-$ forge --help
-$ anvil --help
-$ cast --help
 ```
