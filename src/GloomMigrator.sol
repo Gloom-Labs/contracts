@@ -13,8 +13,7 @@ import "@openzeppelin/contracts/governance/Governor.sol";
  */
 contract GloomMigrator {
     /// Old Gloom token contract
-    ERC20 public constant OLD_GLOOM_TOKEN =
-        ERC20(0x4Ff77748E723f0d7B161f90B4bc505187226ED0D);
+    ERC20 public constant OLD_GLOOM_TOKEN = ERC20(0x4Ff77748E723f0d7B161f90B4bc505187226ED0D);
 
     /// New Gloom token contract
     ERC20 public newGloomToken;
@@ -23,8 +22,7 @@ contract GloomMigrator {
     Governor public gloomGovernor;
 
     /// Burn address
-    address public constant BURN_ADDRESS =
-        0x000000000000000000000000000000000000dEaD;
+    address public constant BURN_ADDRESS = 0x000000000000000000000000000000000000dEaD;
 
     /// Unix timestamp when the migration period ends and GloomGovernor can transfer remaining tokens
     uint256 public immutable migrationPeriodEndTimestamp;
@@ -38,15 +36,8 @@ contract GloomMigrator {
      * @param gloomGovernor_ The new Gloom OpenZeppelin governor contract
      */
     constructor(ERC20 newGloomToken_, Governor gloomGovernor_) {
-        require(
-            newGloomToken_.decimals() == OLD_GLOOM_TOKEN.decimals(),
-            "Decimals do not match"
-        );
-        require(
-            newGloomToken_.balanceOf(address(this)) ==
-                OLD_GLOOM_TOKEN.totalSupply(),
-            "Token supply does not match"
-        );
+        require(newGloomToken_.decimals() == OLD_GLOOM_TOKEN.decimals(), "Decimals do not match");
+        require(newGloomToken_.balanceOf(address(this)) == OLD_GLOOM_TOKEN.totalSupply(), "Token supply does not match");
 
         newGloomToken = newGloomToken_;
         gloomGovernor = gloomGovernor_;
@@ -60,15 +51,8 @@ contract GloomMigrator {
      * @param tokenAmount The amount of old tokens to migrate
      */
     function migrateTokens(uint256 tokenAmount) external {
-        require(
-            block.timestamp < migrationPeriodEndTimestamp,
-            "Migration period has ended"
-        );
-        bool success = OLD_GLOOM_TOKEN.transferFrom(
-            msg.sender,
-            BURN_ADDRESS,
-            tokenAmount
-        );
+        require(block.timestamp < migrationPeriodEndTimestamp, "Migration period has ended");
+        bool success = OLD_GLOOM_TOKEN.transferFrom(msg.sender, BURN_ADDRESS, tokenAmount);
         require(success, "Transfer failed");
 
         newGloomToken.transfer(msg.sender, tokenAmount);
@@ -82,14 +66,8 @@ contract GloomMigrator {
      * @param recipient The address to transfer remaining tokens to MUST be either GloomGovernor or BURN_ADDRESS
      */
     function transferUnmigratedTokens(address recipient) external {
-        require(
-            block.timestamp >= migrationPeriodEndTimestamp,
-            "Migration period is still active"
-        );
-        require(
-            msg.sender == address(gloomGovernor),
-            "Only GloomGovernor contract can call this function"
-        );
+        require(block.timestamp >= migrationPeriodEndTimestamp, "Migration period is still active");
+        require(msg.sender == address(gloomGovernor), "Only GloomGovernor contract can call this function");
         require(
             recipient == address(gloomGovernor) || recipient == BURN_ADDRESS,
             "Recipient must be GloomGovernor or burn address"

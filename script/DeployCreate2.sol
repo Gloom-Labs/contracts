@@ -9,9 +9,9 @@ import {GloomGovernor} from "../src/GloomGovernor.sol";
 
 contract DeployGloomSuite is Script {
     function run() public {
-        IERC20Reflection oldGloom = IERC20Reflection(
-            0x34A1D3fff3958843C43aD80F30b94c510645C316
-        );
+        // IERC20Reflection oldGloom = IERC20Reflection(
+        //     0x34A1D3fff3958843C43aD80F30b94c510645C316
+        // );
         vm.startBroadcast();
         address deployer = address(msg.sender);
         bytes32 salt = keccak256("GLOOM_DEPLOY_SALT");
@@ -30,21 +30,21 @@ contract DeployGloomSuite is Script {
             deployer
         );
 
-        bytes32 gloomTokenBytecode = keccak256(type(GloomToken).creationCode);
-        address newGloomAddress = vm.computeCreate2Address(
-            salt,
-            gloomTokenBytecode,
-            deployer
-        );
+        // bytes32 gloomTokenBytecode = keccak256(type(GloomToken).creationCode);
+        // address newGloomAddress = vm.computeCreate2Address(
+        //     salt,
+        //     gloomTokenBytecode,
+        //     deployer
+        // );
 
-        bytes32 gloomGovernorBytecode = keccak256(
-            type(GloomGovernor).creationCode
-        );
-        address gloomGovernorAddress = vm.computeCreate2Address(
-            salt,
-            gloomGovernorBytecode,
-            address(this)
-        );
+        // bytes32 gloomGovernorBytecode = keccak256(
+        //     type(GloomGovernor).creationCode
+        // );
+        // address gloomGovernorAddress = vm.computeCreate2Address(
+        //     salt,
+        //     gloomGovernorBytecode,
+        //     address(this)
+        // );
 
         /// 2. DEPLOY GLOOM TOKEN - MINT TO GLOOM MIGRATOR
 

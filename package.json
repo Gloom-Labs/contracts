@@ -1,0 +1,5 @@
+{
+  "devDependencies": {
+    "erc721a": "^4.3.0"
+  }
+}

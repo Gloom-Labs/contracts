@@ -5,6 +5,8 @@ bin/
 ztash/
 viem-tools/
 /lib
+/node_modules
+
 
 # Ignores development broadcast logs
 !/broadcast
