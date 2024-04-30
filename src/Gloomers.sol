@@ -29,27 +29,31 @@ contract Gloomers is ERC721A, ERC721AQueryable, StartTokenIdHelper, ERC2981, Own
     mapping(address => uint256) private _presaleAllocationsByWallet;
     mapping(uint256 => address) private _presaleWalletsById;
     uint256 private _presalesCount;
-    bool private presaleMinted = false;
+    uint256 private _presaleSupplyOffset;
+
     bool private revealed = false;
     string private _baseTokenURI =
         "https://ipfs.gloomtoken.xyz/ipfs/bafybeidnrgagzrjvavrsjtnz6qhqvnlbkz3vh5q35gfgkj236ylsxwpmsy";
 
     event BatchMetadataUpdate(uint256 _fromTokenId, uint256 _toTokenId);
     event GloomersMint(address indexed _to, uint256 _quantity);
-    event GloomersWhitelist(address indexed _to, uint256 _quantity);
-    event GloomersPresale(address indexed _to, uint256 _quantity);
-    event GloomersMintUpdate(DropStatus _dropStatus);
+    event MintWhitelist(address indexed _to, uint256 _quantity);
+    event RegisterPresale(address indexed _to, uint256 _quantity);
+    event ClaimPresale(address indexed _to, uint256 _quantity);
+    event NewDropStatus(DropStatus _dropStatus);
 
     error MintingDisabled();
     error PublicMintNotActive();
     error WhitelistNotActive();
     error PresaleNotActive();
+    error ClaimNotActive();
+    error NotEligible();
     error ExceedsMaxMintPerWallet();
     error ExceedsMaxSupply();
     error InsufficientFunds();
     error NonEOACaller();
 
-    modifier mintEnabled() {
+    modifier dropEnabled() {
         if (dropStatus == DropStatus.DISABLED) {
             revert MintingDisabled();
         }
@@ -57,7 +61,7 @@ contract Gloomers is ERC721A, ERC721AQueryable, StartTokenIdHelper, ERC2981, Own
     }
 
     modifier presaleActive() {
-        if (block.timestamp > WHITELIST_START_TIMESTAMP || dropStatus != DropStatus.PRESALE || presaleMinted) {
+        if (block.timestamp > WHITELIST_START_TIMESTAMP || dropStatus != DropStatus.PRESALE) {
             revert PresaleNotActive();
         }
         _;
@@ -80,8 +84,22 @@ contract Gloomers is ERC721A, ERC721AQueryable, StartTokenIdHelper, ERC2981, Own
         _;
     }
 
+    modifier claimEnabled() {
+        if (block.timestamp < WHITELIST_START_TIMESTAMP) {
+            revert ClaimNotActive();
+        }
+        _;
+    }
+
+    modifier eligibleForClaim() {
+        if (_presaleAllocationsByWallet[msg.sender] == 0) {
+            revert NotEligible();
+        }
+        _;
+    }
+
     modifier supplyIsAvailable(uint256 quantity) {
-        if (quantity + _nextTokenId() > MAX_SUPPLY) {
+        if (quantity + _nextTokenId() > MAX_SUPPLY - _presaleSupplyOffset) {
             revert ExceedsMaxSupply();
         }
         _;
@@ -123,7 +141,7 @@ contract Gloomers is ERC721A, ERC721AQueryable, StartTokenIdHelper, ERC2981, Own
     function mint(uint256 quantity)
         external
         payable
-        mintEnabled
+        dropEnabled
         publicMintActive
         fundsAttached(quantity)
         obeysWalletLimit(quantity)
@@ -136,10 +154,10 @@ contract Gloomers is ERC721A, ERC721AQueryable, StartTokenIdHelper, ERC2981, Own
         emit GloomersMint(msg.sender, quantity);
     }
 
-    function whitelistMint(uint256 quantity, bytes32 hash, bytes memory signature)
+    function mintWhitelist(uint256 quantity, bytes32 hash, bytes memory signature)
         external
         payable
-        mintEnabled
+        dropEnabled
         whitelistActive
         validatedWhitelistRequest(hash, signature)
         fundsAttached(quantity)
@@ -150,13 +168,14 @@ contract Gloomers is ERC721A, ERC721AQueryable, StartTokenIdHelper, ERC2981, Own
         _mintedPerWallet[msg.sender] += quantity;
         _mint(msg.sender, quantity);
 
-        emit GloomersWhitelist(msg.sender, quantity);
+        emit MintWhitelist(msg.sender, quantity);
+        (msg.sender, quantity);
     }
 
-    function presaleMint(uint256 quantity, bytes32 hash, bytes memory signature)
+    function registerPresale(uint256 quantity, bytes32 hash, bytes memory signature)
         external
         payable
-        mintEnabled
+        dropEnabled
         presaleActive
         validatedWhitelistRequest(hash, signature)
         fundsAttached(quantity)
@@ -165,24 +184,29 @@ contract Gloomers is ERC721A, ERC721AQueryable, StartTokenIdHelper, ERC2981, Own
         onlyEOA
     {
         ++_presalesCount;
+        _presaleSupplyOffset += quantity;
         _presaleAllocationsByWallet[msg.sender] = quantity;
         _presaleWalletsById[_presalesCount] = msg.sender;
 
-        emit GloomersPresale(msg.sender, quantity);
+        emit RegisterPresale(msg.sender, quantity);
+        (msg.sender, quantity);
     }
 
-    function mintPresaleTokens() external onlyOwner presaleActive {
-        for (uint256 i = 1; i <= _presalesCount; i++) {
-            address wallet = _presaleWalletsById[i];
-            uint256 quantity = _presaleAllocationsByWallet[wallet];
-            _mint(wallet, quantity);
+    function claimPresale()
+        external
+        dropEnabled
+        claimEnabled
+        eligibleForClaim
+        obeysWalletLimit(_presaleAllocationsByWallet[msg.sender])
+        onlyEOA
+    {
+        uint256 quantity = _presaleAllocationsByWallet[msg.sender];
+        _mintedPerWallet[msg.sender] += quantity;
+        _presaleAllocationsByWallet[msg.sender] = 0;
+        _presaleSupplyOffset -= quantity;
+        _mint(msg.sender, quantity);
 
-            emit GloomersMint(wallet, quantity);
-        }
-
-        presaleMinted = true;
-        dropStatus = DropStatus.WHITELIST;
-        emit GloomersMintUpdate(DropStatus.WHITELIST);
+        emit GloomersMint(msg.sender, quantity);
     }
 
     function getPresaleAllocation(address wallet) public view returns (uint256) {
@@ -221,13 +245,13 @@ contract Gloomers is ERC721A, ERC721AQueryable, StartTokenIdHelper, ERC2981, Own
         _setDefaultRoyalty(receiver, feeNumerator);
     }
 
-    function updateWhitelistSigner(address whitelistSigner_) public onlyOwner {
-        _updateWhitelistSigner(whitelistSigner_);
+    function setWhitelistSigner(address whitelistSigner_) public onlyOwner {
+        _setWhitelistSigner(whitelistSigner_);
     }
 
-    function updateDropStatus(DropStatus newDropStatus) public onlyOwner {
+    function setDropStatus(DropStatus newDropStatus) public onlyOwner {
         dropStatus = newDropStatus;
-        emit GloomersMintUpdate(newDropStatus);
+        emit NewDropStatus(newDropStatus);
     }
 
     function withdraw() public onlyOwner {

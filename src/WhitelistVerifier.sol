@@ -25,7 +25,7 @@ contract WhitelistVerifier {
         return signer == whitelistSigner;
     }
 
-    function _updateWhitelistSigner(address whitelistSigner_) internal {
+    function _setWhitelistSigner(address whitelistSigner_) internal {
         whitelistSigner = whitelistSigner_;
     }
 }
