@@ -8,8 +8,8 @@ contract WhitelistVerifier {
 
     error InvalidWhitelistRequest();
 
-    constructor(address _whitelistSigner) {
-        whitelistSigner = _whitelistSigner;
+    constructor(address whitelistSigner_) {
+        whitelistSigner = whitelistSigner_;
     }
 
     modifier validatedWhitelistRequest(bytes32 hash, bytes memory signature) {
@@ -25,7 +25,7 @@ contract WhitelistVerifier {
         return signer == whitelistSigner;
     }
 
-    function updateWhitelistSigner(address _whitelistSigner) internal {
-        whitelistSigner = _whitelistSigner;
+    function _updateWhitelistSigner(address whitelistSigner_) internal {
+        whitelistSigner = whitelistSigner_;
     }
 }

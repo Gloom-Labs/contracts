@@ -13,50 +13,74 @@ contract Gloomers is ERC721A, WhitelistVerifier, Ownable, ERC2981, ERC721AQuerya
     uint256 public constant PRICE_PER_TOKEN = 0.03 ether;
     uint256 public constant MAX_MINT_PER_WALLET = 3;
     bytes32 public constant PROVENANCE_HASH = 0x5158cf3ac201d8d9dfe63ac7c7d1e7aa58b7c33426665c9bf643e0003e095e2f;
-    uint256 public constant MINT_START_TIMESTAMP = 1714838400; // Sat May 04 2024 16:00:00 GMT
-    uint256 public constant WHITELIST_MINT_DURATION = 3 hours;
+    uint256 public constant WHITELIST_START_TIMESTAMP = 1714838400; // Sat May 04 2024 16:00:00 GMT
+    uint256 public constant PUBLIC_MINT_TIMESTAMP = WHITELIST_START_TIMESTAMP + 3 hours;
 
     bool public revealed = false;
+    DropStatus public dropStatus = DropStatus.DISABLED;
 
-    MintState public mintState = MintState.DISABLED;
-
-    enum MintState {
+    enum DropStatus {
         DISABLED,
+        PRESALE,
         WHITELIST,
         PUBLIC
     }
 
-    string private _baseTokenURI =
-        "https://ipfs.gloomtoken.xyz/ipfs/bafybeidnrgagzrjvavrsjtnz6qhqvnlbkz3vh5q35gfgkj236ylsxwpmsy";
+    uint256 private _presalesCount;
+    mapping(address => uint256) private _presaleAllocationsByWallet;
+    mapping(uint256 => address) private _presaleWalletsById;
     mapping(address => uint256) private _mintedPerWallet;
 
+    string private _baseTokenURI =
+        "https://ipfs.gloomtoken.xyz/ipfs/bafybeidnrgagzrjvavrsjtnz6qhqvnlbkz3vh5q35gfgkj236ylsxwpmsy";
+
     event BatchMetadataUpdate(uint256 _fromTokenId, uint256 _toTokenId);
-    event GloomerMinted(address indexed _to, uint256 _quantity);
-    event WhitelistClaimed(address indexed _to, uint256 _quantity);
-    event MintStateUpdated(MintState _mintState);
+    event GloomersMint(address indexed _to, uint256 _quantity);
+    event GloomersWhitelist(address indexed _to, uint256 _quantity);
+    event GloomersPresale(address indexed _to, uint256 _quantity);
+    event GloomersMintUpdate(DropStatus _dropStatus);
 
     error MintingDisabled();
-    error PublicSaleNotActive();
+    error PublicMintNotActive();
+    error WhitelistNotActive();
+    error PresaleNotActive();
     error ExceedsMaxMintPerWallet();
     error ExceedsMaxSupply();
     error InsufficientFunds();
     error NonEOACaller();
 
-    modifier publicSaleActive() {
-        if (mintState != MintState.PUBLIC) {
-            revert PublicSaleNotActive();
-        }
-        _;
-    }
-
-    modifier notDisabled() {
-        if (mintState == MintState.DISABLED) {
+    modifier mintEnabled() {
+        if (dropStatus == DropStatus.DISABLED) {
             revert MintingDisabled();
         }
         _;
     }
 
-    modifier mintsAvailable(uint256 quantity) {
+    modifier presaleActive() {
+        if (block.timestamp > WHITELIST_START_TIMESTAMP || dropStatus != DropStatus.PRESALE) {
+            revert PresaleNotActive();
+        }
+        _;
+    }
+
+    modifier whitelistActive() {
+        if (
+            block.timestamp > WHITELIST_START_TIMESTAMP || block.timestamp < PUBLIC_MINT_TIMESTAMP
+                || dropStatus != DropStatus.WHITELIST
+        ) {
+            revert WhitelistNotActive();
+        }
+        _;
+    }
+
+    modifier publicMintActive() {
+        if (block.timestamp < PUBLIC_MINT_TIMESTAMP || dropStatus != DropStatus.PUBLIC) {
+            revert PublicMintNotActive();
+        }
+        _;
+    }
+
+    modifier supplyIsAvailable(uint256 quantity) {
         if (quantity + _nextTokenId() > MAX_SUPPLY) {
             revert ExceedsMaxSupply();
         }
@@ -70,14 +94,17 @@ contract Gloomers is ERC721A, WhitelistVerifier, Ownable, ERC2981, ERC721AQuerya
         _;
     }
 
-    modifier notOverWalletLimit(uint256 quantity) {
-        if (_mintedPerWallet[msg.sender] + quantity > MAX_MINT_PER_WALLET && msg.sender != owner()) {
+    modifier obeysWalletLimit(uint256 quantity) {
+        if (
+            _mintedPerWallet[msg.sender] + _presaleAllocationsByWallet[msg.sender] + quantity > MAX_MINT_PER_WALLET
+                && msg.sender != owner()
+        ) {
             revert ExceedsMaxMintPerWallet();
         }
         _;
     }
 
-    modifier callerIsEOA() {
+    modifier onlyEOA() {
         if (tx.origin != msg.sender) {
             revert NonEOACaller();
         }
@@ -96,47 +123,69 @@ contract Gloomers is ERC721A, WhitelistVerifier, Ownable, ERC2981, ERC721AQuerya
     function mint(uint256 quantity)
         external
         payable
-        notDisabled
-        callerIsEOA
-        mintsAvailable(quantity)
+        mintEnabled
+        publicMintActive
         fundsAttached(quantity)
-        notOverWalletLimit(quantity)
-        publicSaleActive
+        obeysWalletLimit(quantity)
+        supplyIsAvailable(quantity)
+        onlyEOA
     {
         _mintedPerWallet[msg.sender] += quantity;
         _mint(msg.sender, quantity);
 
-        emit GloomerMinted(msg.sender, quantity);
+        emit GloomersMint(msg.sender, quantity);
     }
 
     function whitelistMint(uint256 quantity, bytes32 hash, bytes memory signature)
         external
         payable
-        notDisabled
-        callerIsEOA
-        mintsAvailable(quantity)
-        fundsAttached(quantity)
-        notOverWalletLimit(quantity)
+        mintEnabled
+        whitelistActive
         validatedWhitelistRequest(hash, signature)
+        fundsAttached(quantity)
+        obeysWalletLimit(quantity)
+        supplyIsAvailable(quantity)
+        onlyEOA
     {
         _mintedPerWallet[msg.sender] += quantity;
         _mint(msg.sender, quantity);
 
-        emit WhitelistClaimed(msg.sender, quantity);
+        emit GloomersWhitelist(msg.sender, quantity);
     }
 
     function presaleMint(uint256 quantity, bytes32 hash, bytes memory signature)
         external
         payable
-        notDisabled
-        callerIsEOA
-        mintsAvailable(quantity)
-        fundsAttached(quantity)
-        notOverWalletLimit(quantity)
+        mintEnabled
+        presaleActive
         validatedWhitelistRequest(hash, signature)
+        fundsAttached(quantity)
+        obeysWalletLimit(quantity)
+        supplyIsAvailable(quantity)
+        onlyEOA
     {
-        _presaleMintedPerWallet[msg.sender] += quantity;
-        emit PresaleClaimed(msg.sender, quantity);
+        ++_presalesCount;
+        _presaleAllocationsByWallet[msg.sender] = quantity;
+        _presaleWalletsById[_presalesCount] = msg.sender;
+
+        emit GloomersPresale(msg.sender, quantity);
+    }
+
+    function mintPresaleTokens() external onlyOwner onlyEOA {
+        for (uint256 i = 1; i <= _presalesCount; i++) {
+            address wallet = _presaleWalletsById[i];
+            uint256 quantity = _presaleAllocationsByWallet[wallet];
+            _mint(wallet, quantity);
+
+            emit GloomersMint(wallet, quantity);
+        }
+
+        emit GloomersMintUpdate(DropStatus.WHITELIST);
+        dropStatus = DropStatus.WHITELIST;
+    }
+
+    function getPresaleAllocation(address wallet) public view returns (uint256) {
+        return _presaleAllocationsByWallet[wallet];
     }
 
     function _startTokenId() internal view override returns (uint256) {
@@ -173,6 +222,11 @@ contract Gloomers is ERC721A, WhitelistVerifier, Ownable, ERC2981, ERC721AQuerya
 
     function updateWhitelistSigner(address whitelistSigner_) public onlyOwner {
         _updateWhitelistSigner(whitelistSigner_);
+    }
+
+    function updateDropStatus(DropStatus newDropStatus) public onlyOwner {
+        dropStatus = newDropStatus;
+        emit GloomersMintUpdate(newDropStatus);
     }
 
     // Required overrides
