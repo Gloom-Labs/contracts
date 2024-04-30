@@ -1,5 +1,5 @@
 {
     "solidity.compileUsingRemoteVersion": "v0.8.25+commit.b61c2a91",
     "solidity.defaultCompiler": "localNodeModule",
-    "solidity.compileUsingLocalVersion": "/Users/markeljan/Projects/gloom-labs/contracts/soljson-v0.8.25+commit.b61c2a91.js"
+    "solidity.compileUsingLocalVersion": "/Users/markeljan/Projects/gloom-labs/contracts/soljson-v0.8.24+commit.e11b9ed9.js"
 }
