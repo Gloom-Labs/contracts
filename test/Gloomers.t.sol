@@ -1,62 +1,105 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.24;
+pragma solidity 0.8.25;
 
-import {Test, console} from "forge-std/Test.sol";
-import {Gloomers} from "../src/Gloomers.sol";
+import "forge-std/Test.sol";
+import "../src/Gloomers.sol";
 
 contract GloomersTest is Test {
-    Gloomers gloomers;
+    Gloomers public gloomers;
+    address public owner;
+    address public user1;
+    address public whitelistSigner;
 
     function setUp() public {
-        // vm.createSelectFork("https://mainnet.base.org");
+        owner = address(this);
+        user1 = address(0x9dF0C6b0066D5317aA5b38B36850548DaCCa6B4e);
+        whitelistSigner = address(0x1);
+        gloomers = new Gloomers(whitelistSigner);
+    }
 
-        gloomers = new Gloomers(
-            
+    function testInitialState() public view {
+        assertEq(gloomers.START_TOKEN_ID(), 3334);
+        assertEq(gloomers.PRICE_PER_TOKEN(), 0.03 ether);
+        assertEq(gloomers.MAX_MINT_PER_WALLET(), 3);
+        assertEq(
+            gloomers.PROVENANCE_HASH(),
+            0x5158cf3ac201d8d9dfe63ac7c7d1e7aa58b7c33426665c9bf643e0003e095e2f
+        );
+        assertEq(gloomers.WHITELIST_START_TIMESTAMP(), 1714838400);
+        assertEq(gloomers.PUBLIC_MINT_TIMESTAMP(), 1714838400 + 3 hours);
+        assertEq(uint256(gloomers.dropStatus()), 0);
+    }
+
+    function testSetTokenUri() public {
+        // set drop status to PRESALE
+        Gloomers.DropStatus newDropStatus = Gloomers.DropStatus.PRESALE;
+        string memory originalURI = gloomers.tokenURI(3339);
+        string memory newBaseURI = "https://new.baseuri.com/";
+        gloomers.setTokenUri(newBaseURI);
+        vm.expectRevert();
+        string memory newURI = gloomers.tokenURI(3339);
+        assertEq(
+            gloomers.tokenURI(3334),
+            string(abi.encodePacked(newBaseURI, "1"))
         );
     }
 
-    // test full suite
-    function testFullSuite() public {
-        //mint 3333 gloomers 3 to each address
-        for (uint256 i = 1; i <= 1900; i++) {
-            vm.startPrank(vm.addr(i));
-            uint256 totalSupply = gloomers.totalSupply();
-            uint256 mintAmount = i % 3 + 1;
-            if (totalSupply + mintAmount > 3333) {
-                mintAmount = 3333 - totalSupply;
-            }
-            gloomers.mint(mintAmount);
+    function testSetDefaultRoyalty() public {
+        address receiver = address(0x2);
+        uint96 feeNumerator = 1000;
+        gloomers.setDefaultRoyalty(receiver, feeNumerator);
+        (address royaltyReceiver, uint256 royaltyAmount) = gloomers.royaltyInfo(
+            1,
+            1 ether
+        );
+        assertEq(royaltyReceiver, receiver);
+        assertEq(royaltyAmount, (1 ether * feeNumerator) / 10000);
+    }
 
-            uint256 nextSequentialTokenId = gloomers.nextSequentialTokenId();
-            uint256 nextSpotMintTokenId = gloomers.nextSpotMintTokenId();
+    function testSetWhitelistSigner() public {
+        address newWhitelistSigner = address(0x3);
+        gloomers.setWhitelistSigner(newWhitelistSigner);
+        assertEq(gloomers.whitelistSigner(), newWhitelistSigner);
+    }
 
-            uint256 totalSequentialMinted = gloomers.totalMinted();
-            uint256 totalSpotMinted = gloomers.totalSpotMinted();
-            console.log("nextSequentialTokenId: ", nextSequentialTokenId);
-            console.log("nextSpotMintTokenId: ", nextSpotMintTokenId);
-            console.log("totalSequentialMinted: ", totalSequentialMinted);
-            console.log("totalSpotMinted: ", totalSpotMinted);
-            console.log("Total Supply: ", totalSupply);
-            vm.stopPrank();
-        }
+    function testSetDropStatus() public {
+        Gloomers.DropStatus newDropStatus = Gloomers.DropStatus.PUBLIC;
+        gloomers.setDropStatus(newDropStatus);
+        assertEq(uint256(gloomers.dropStatus()), uint256(newDropStatus));
+    }
 
-        vm.expectRevert();
-        string memory uri1500 = gloomers.tokenURI(1500);
-        vm.expectRevert();
-        string memory uri3333 = gloomers.tokenURI(3333);
-        vm.expectRevert();
-        string memory uri6667 = gloomers.tokenURI(6667);
-        vm.expectRevert();
-        string memory uri10000 = gloomers.tokenURI(10000);
+    function testWithdraw() public {
+        uint256 balance = address(this).balance;
+        payable(address(gloomers)).transfer(address(this).balance);
+        console.log("balance", balance);
+        uint256 contractBalance = address(gloomers).balance;
+        console.log("contractBalance", contractBalance);
+        address gloomersDeployer = gloomers.owner();
+        console.log("gloomersDeployer", gloomersDeployer);
+        gloomers.withdraw();
+    }
+
+    // test mint
+    function testMint() public {
+        gloomers.setDropStatus(Gloomers.DropStatus.PUBLIC);
+        vm.warp(gloomers.PUBLIC_MINT_TIMESTAMP() + 1);
+
+        gloomers.setTokenUri(
+            "ipfs://bafaf/"
+        );
 
         for (uint256 i = 3334; i <= 6666; i++) {
-            string memory uri = gloomers.tokenURI(i);
+            vm.deal(vm.addr(i), 1 ether);
+            vm.prank(vm.addr(i));
+            gloomers.mint{value: 0.03 ether}(1);
+            console.log("TOKEN URI", gloomers.tokenURI(i));
+            uint256[] memory tokenId = gloomers.tokensOfOwner(vm.addr(i));
         }
-        gloomers.reveal("ipfs://bafybeicgkb56vydl3kkcrgox7dpyatrgafxogurp42opjmiocfnwmbftlm/");
-
-        string memory uri1Updated = gloomers.tokenURI(1);
-        string memory uri1500Updated = gloomers.tokenURI(1500);
-        console.log("URI 1 Updated: ", uri1Updated);
-        console.log("URI 1500 Updated: ", uri1500Updated);
     }
+
+    // Function to receive Ether. msg.data must be empty
+    receive() external payable {}
+
+    // Fallback function is called when msg.data is not empty
+    fallback() external payable {}
 }

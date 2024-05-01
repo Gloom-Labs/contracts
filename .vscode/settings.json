@@ -1,5 +1,11 @@
 {
-    "solidity.compileUsingRemoteVersion": "v0.8.25+commit.b61c2a91",
-    "solidity.defaultCompiler": "localNodeModule",
-    "solidity.compileUsingLocalVersion": "/Users/markeljan/Projects/gloom-labs/contracts/soljson-v0.8.24+commit.e11b9ed9.js"
+  "solidity.defaultCompiler": "remote",
+  "solidity.compileUsingRemoteVersion": "v0.8.25+commit.b61c2a91",
+  "solidity.remappings": [
+    "@openzeppelin/contracts/=lib/openzeppelin-contracts/contracts/",
+    "ds-test/=lib/forge-std/src/",
+    "erc721a/=lib/erc721a/",
+    "forge-std/=lib/forge-std/src/",
+    "openzeppelin-contracts/=lib/openzeppelin-contracts/"
+  ]
 }
