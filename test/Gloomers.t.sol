@@ -3,9 +3,6 @@ pragma solidity 0.8.25;
 
 import "forge-std/Test.sol";
 import "../src/Gloomers.sol";
-import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
-import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
-import "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 
 import "../src/WhitelistVerifier.sol";
 
@@ -16,31 +13,12 @@ contract GloomersTest is Test {
     WhitelistVerifier public whitelistVerifier;
     address public owner;
     address public user1;
-    address public whitelistSigner;
-    uint256 whitelistSignerPk =
-        0x1010101010101010101010101010101010101010101010101010101010101010;
-    uint256 internal userPrivateKey;
-    uint256 internal signerPrivateKey;
-
-    struct Wallet {
-        address addr;
-        uint256 publicKeyX;
-        uint256 publicKeyY;
-        uint256 privateKey;
-    }
 
     function setUp() public {
         owner = address(this);
         user1 = address(0x9dF0C6b0066D5317aA5b38B36850548DaCCa6B4e);
 
-        whitelistSigner = vm.addr(whitelistSignerPk);
-        whitelistVerifier = new WhitelistVerifier(whitelistSigner);
-
-        gloomers = new Gloomers(whitelistSigner);
-
-        userPrivateKey = 0xa11ce;
-        signerPrivateKey = 0xabc123;
-        address signer = vm.addr(signerPrivateKey);
+        gloomers = new Gloomers();
     }
 
     // Function to receive Ether. msg.data must be empty
@@ -88,12 +66,6 @@ contract GloomersTest is Test {
         assertEq(royaltyAmount, (1 ether * feeNumerator) / 10000);
     }
 
-    function testSetWhitelistSigner() public {
-        address newWhitelistSigner = address(0x3);
-        gloomers.setWhitelistSigner(newWhitelistSigner);
-        assertEq(gloomers.whitelistSigner(), newWhitelistSigner);
-    }
-
     function testSetDropStatus() public {
         Gloomers.DropStatus newDropStatus = Gloomers.DropStatus.PUBLIC;
         gloomers.setDropStatus(newDropStatus);
@@ -128,32 +100,28 @@ contract GloomersTest is Test {
     }
 
     function testPresale() public {
-        address user = vm.addr(userPrivateKey);
-        address signer = vm.addr(signerPrivateKey);
-
-        uint256 amount = 2;
-        string memory nonce = "QSfd8gQE4WYzO29";
-
+        bytes32 gloomerHash = keccak256(abi.encodePacked("gloomerHash2024"));
+        gloomers.setGloomerHash(gloomerHash);
         gloomers.setDropStatus(Gloomers.DropStatus.PRESALE);
 
-        vm.startPrank(signer);
+        address user1 = address(0x1);
 
-        string memory message = "attack at dawn";
+        vm.startBroadcast();
+        vm.deal(user1, 1 ether);
+        gloomers.registerPresale{value: 0.03 ether}(1, gloomerHash);
 
-
-        assertEq(signature.length, 65);
-
-        console.logBytes(signature);
-
-
-
-        vm.stopPrank();
-
-        vm.startPrank(user);
-        // Give the user some ETH, just for good measure
-        vm.deal(user, 1 ether);
+        uint256 allocation = gloomers.getPresaleAllocation(user1);
+        console.log("user1 allocation", allocation);
 
         vm.warp(gloomers.WHITELIST_START_TIMESTAMP() + 1);
-        vm.stopPrank();
+
+        gloomers.claimPresale();
+
+        uint256[] memory tokenId = gloomers.tokensOfOwner(user1);
+        console.log("tokenId", tokenId[0]);
+
+        console.log("TOKEN URI", gloomers.tokenURI(tokenId[0]));
+
+        vm.stopBroadcast();
     }
 }

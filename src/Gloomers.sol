@@ -4,14 +4,13 @@ pragma solidity 0.8.25;
 import {IERC721A, ERC721A} from "erc721a/contracts/ERC721A.sol";
 import {ERC721AQueryable} from "erc721a/contracts/extensions/ERC721AQueryable.sol";
 import {StartTokenIdHelper} from "erc721a/contracts/extensions/StartTokenIdHelper.sol";
-import {WhitelistVerifier} from "../src/WhitelistVerifier.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {ERC2981} from "@openzeppelin/contracts/token/common/ERC2981.sol";
 
 /**
  * @title Gloomers #3334 - #6666
  * @author soko.eth | Gloom Labs | https://www.gloomtoken.com
- * @dev ERC721A contract with presale, whitelist, and public minting
+ * @dev ERC721A contract with presale, whitelist, and public minting periods.
  * @notice Gloomers is a 10k PFP collection launched across Base, Solana, and Optimism with teleburning to Bitcoin
  */
 contract Gloomers is
@@ -19,8 +18,7 @@ contract Gloomers is
     ERC721A,
     ERC721AQueryable,
     ERC2981,
-    Ownable,
-    WhitelistVerifier
+    Ownable
 {
     uint256 public constant START_TOKEN_ID = 3334;
     uint256 public constant END_TOKEN_ID = 6666;
@@ -46,6 +44,7 @@ contract Gloomers is
     mapping(uint256 => address) private _presaleWalletsById;
     uint256 private _presalesCount;
     uint256 private _presaleSupplyOffset;
+    bytes32 private gloomerHash;
 
     bool private revealed = false;
     string private _baseTokenURI =
@@ -143,6 +142,13 @@ contract Gloomers is
         _;
     }
 
+    modifier gloomin(bytes32 gloomerHash_) {
+        if (gloomerHash != gloomerHash_) {
+            revert NotEligible();
+        }
+        _;
+    }
+
     modifier onlyEOA() {
         if (tx.origin != msg.sender) {
             revert NonEOACaller();
@@ -150,13 +156,10 @@ contract Gloomers is
         _;
     }
 
-    constructor(
-        address whitelistSigner_
-    )
+    constructor()
         StartTokenIdHelper(START_TOKEN_ID)
         ERC721A("Gloomers", "GLOOMERS")
         Ownable(msg.sender)
-        WhitelistVerifier(whitelistSigner_)
     {
         _setDefaultRoyalty(msg.sender, 500);
     }
@@ -181,19 +184,21 @@ contract Gloomers is
 
     function mintWhitelist(
         uint256 quantity,
-        bytes32 hash,
-        bytes memory signature
+        bytes32 gloomerHash_
     )
         external
         payable
         dropEnabled
         whitelistActive
-        validatedWhitelistRequest(hash, signature)
         fundsAttached(quantity)
         obeysWalletLimit(quantity)
         supplyIsAvailable(quantity)
+        gloomin(gloomerHash_)
         onlyEOA
     {
+        if (gloomerHash != gloomerHash_) {
+            revert NotEligible();
+        }
         _mintedPerWallet[msg.sender] += quantity;
         _mint(msg.sender, quantity);
 
@@ -203,17 +208,16 @@ contract Gloomers is
 
     function registerPresale(
         uint256 quantity,
-        bytes32 hash,
-        bytes memory signature
+        bytes32 gloomerHash_
     )
         external
         payable
         dropEnabled
         presaleActive
-        validatedWhitelistRequest(hash, signature)
         fundsAttached(quantity)
         obeysWalletLimit(quantity)
         supplyIsAvailable(quantity)
+        gloomin(gloomerHash_)
         onlyEOA
     {
         ++_presalesCount;
@@ -291,13 +295,13 @@ contract Gloomers is
         _setDefaultRoyalty(receiver, feeNumerator);
     }
 
-    function setWhitelistSigner(address whitelistSigner_) public onlyOwner {
-        _setWhitelistSigner(whitelistSigner_);
-    }
-
     function setDropStatus(DropStatus newDropStatus) public onlyOwner {
         dropStatus = newDropStatus;
         emit NewDropStatus(newDropStatus);
+    }
+
+    function setGloomerHash(bytes32 gloomerHash_) public onlyOwner {
+        gloomerHash = gloomerHash_;
     }
 
     function withdraw() public onlyOwner {
