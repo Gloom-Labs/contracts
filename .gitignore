@@ -4,7 +4,7 @@ out/
 bin/
 ztash/
 viem-tools/
-/lib
+
 /node_modules
 
 
