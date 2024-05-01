@@ -8,6 +8,12 @@ import {WhitelistVerifier} from "../src/WhitelistVerifier.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {ERC2981} from "@openzeppelin/contracts/token/common/ERC2981.sol";
 
+/**
+ * @title Gloomers #3334 - #6666
+ * @author soko.eth | Gloom Labs | https://www.gloomtoken.com
+ * @dev ERC721A contract with presale, ECDSA whitelist, and public minting
+ * @notice Gloomers is a 10k PFP collection launched across Base, Optimism, Bitcoin, and Solana
+ */
 contract Gloomers is ERC721A, ERC721AQueryable, StartTokenIdHelper, ERC2981, Ownable, WhitelistVerifier {
     uint256 public constant MAX_SUPPLY = 3333;
     uint256 public constant PRICE_PER_TOKEN = 0.03 ether;
@@ -61,24 +67,21 @@ contract Gloomers is ERC721A, ERC721AQueryable, StartTokenIdHelper, ERC2981, Own
     }
 
     modifier presaleActive() {
-        if (block.timestamp > WHITELIST_START_TIMESTAMP || dropStatus != DropStatus.PRESALE) {
+        if (block.timestamp > WHITELIST_START_TIMESTAMP) {
             revert PresaleNotActive();
         }
         _;
     }
 
     modifier whitelistActive() {
-        if (
-            block.timestamp > WHITELIST_START_TIMESTAMP || block.timestamp < PUBLIC_MINT_TIMESTAMP
-                || dropStatus != DropStatus.WHITELIST
-        ) {
+        if (block.timestamp < WHITELIST_START_TIMESTAMP || block.timestamp > PUBLIC_MINT_TIMESTAMP) {
             revert WhitelistNotActive();
         }
         _;
     }
 
     modifier publicMintActive() {
-        if (block.timestamp < PUBLIC_MINT_TIMESTAMP || dropStatus != DropStatus.PUBLIC) {
+        if (block.timestamp < PUBLIC_MINT_TIMESTAMP) {
             revert PublicMintNotActive();
         }
         _;
