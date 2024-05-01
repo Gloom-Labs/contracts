@@ -8,7 +8,7 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {ERC2981} from "@openzeppelin/contracts/token/common/ERC2981.sol";
 
 /**
- * @title Gloomers #3334 - #6666
+ * @title Gloomers #6667 - #10000
  * @author soko.eth | Gloom Labs | https://www.gloomtoken.com
  * @dev ERC721A contract with presale, whitelist, and public minting periods.
  * @notice Gloomers is a 10k PFP collection launched across Base, Solana, and Optimism with teleburning to Bitcoin
@@ -20,8 +20,8 @@ contract Gloomers is
     ERC2981,
     Ownable
 {
-    uint256 public constant START_TOKEN_ID = 3334;
-    uint256 public constant END_TOKEN_ID = 6666;
+    uint256 public constant START_TOKEN_ID = 6667;
+    uint256 public constant END_TOKEN_ID = 10000;
     uint256 public constant PRICE_PER_TOKEN = 0.03 ether;
     uint256 public constant MAX_MINT_PER_WALLET = 3;
     bytes32 public constant PROVENANCE_HASH =

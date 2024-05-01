@@ -28,7 +28,7 @@ contract GloomersTest is Test {
     fallback() external payable {}
 
     function testInitialState() public view {
-        assertEq(gloomers.START_TOKEN_ID(), 3334);
+        assertEq(gloomers.START_TOKEN_ID(), 6667);
         assertEq(gloomers.PRICE_PER_TOKEN(), 0.03 ether);
         assertEq(gloomers.MAX_MINT_PER_WALLET(), 3);
         assertEq(
@@ -88,9 +88,11 @@ contract GloomersTest is Test {
         gloomers.setDropStatus(Gloomers.DropStatus.PUBLIC);
         vm.warp(gloomers.PUBLIC_MINT_TIMESTAMP() + 1);
 
-        gloomers.setTokenUri("ipfs://bafaf/");
+        gloomers.setTokenUri(
+            "ipfs://bafybeidnrgagzrjvavrsjtnz6qhqvnlbkz3vh5q35gfgkj236ylsxwpmsy/"
+        );
 
-        for (uint256 i = 3334; i <= 6666; i++) {
+        for (uint256 i = 6667; i <= 10000; i++) {
             vm.deal(vm.addr(i), 1 ether);
             vm.prank(vm.addr(i));
             gloomers.mint{value: 0.03 ether}(1);
