@@ -11,7 +11,7 @@ import {ERC2981} from "@openzeppelin/contracts/token/common/ERC2981.sol";
 /**
  * @title Gloomers #3334 - #6666
  * @author soko.eth | Gloom Labs | https://www.gloomtoken.com
- * @dev ERC721A contract with presale, ECDSA whitelist, and public minting
+ * @dev ERC721A contract with presale, whitelist, and public minting
  * @notice Gloomers is a 10k PFP collection launched across Base, Solana, and Optimism with teleburning to Bitcoin
  */
 contract Gloomers is

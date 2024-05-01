@@ -3,19 +3,51 @@ pragma solidity 0.8.25;
 
 import "forge-std/Test.sol";
 import "../src/Gloomers.sol";
+import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+import "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
+
+import "../src/WhitelistVerifier.sol";
 
 contract GloomersTest is Test {
+    using ECDSA for bytes32;
+
     Gloomers public gloomers;
+    WhitelistVerifier public whitelistVerifier;
     address public owner;
     address public user1;
     address public whitelistSigner;
+    uint256 whitelistSignerPk =
+        0x1010101010101010101010101010101010101010101010101010101010101010;
+    uint256 internal userPrivateKey;
+    uint256 internal signerPrivateKey;
+
+    struct Wallet {
+        address addr;
+        uint256 publicKeyX;
+        uint256 publicKeyY;
+        uint256 privateKey;
+    }
 
     function setUp() public {
         owner = address(this);
         user1 = address(0x9dF0C6b0066D5317aA5b38B36850548DaCCa6B4e);
-        whitelistSigner = address(0x1);
+
+        whitelistSigner = vm.addr(whitelistSignerPk);
+        whitelistVerifier = new WhitelistVerifier(whitelistSigner);
+
         gloomers = new Gloomers(whitelistSigner);
+
+        userPrivateKey = 0xa11ce;
+        signerPrivateKey = 0xabc123;
+        address signer = vm.addr(signerPrivateKey);
     }
+
+    // Function to receive Ether. msg.data must be empty
+    receive() external payable {}
+
+    // Fallback function is called when msg.data is not empty
+    fallback() external payable {}
 
     function testInitialState() public view {
         assertEq(gloomers.START_TOKEN_ID(), 3334);
@@ -84,9 +116,7 @@ contract GloomersTest is Test {
         gloomers.setDropStatus(Gloomers.DropStatus.PUBLIC);
         vm.warp(gloomers.PUBLIC_MINT_TIMESTAMP() + 1);
 
-        gloomers.setTokenUri(
-            "ipfs://bafaf/"
-        );
+        gloomers.setTokenUri("ipfs://bafaf/");
 
         for (uint256 i = 3334; i <= 6666; i++) {
             vm.deal(vm.addr(i), 1 ether);
@@ -97,9 +127,33 @@ contract GloomersTest is Test {
         }
     }
 
-    // Function to receive Ether. msg.data must be empty
-    receive() external payable {}
+    function testPresale() public {
+        address user = vm.addr(userPrivateKey);
+        address signer = vm.addr(signerPrivateKey);
 
-    // Fallback function is called when msg.data is not empty
-    fallback() external payable {}
+        uint256 amount = 2;
+        string memory nonce = "QSfd8gQE4WYzO29";
+
+        gloomers.setDropStatus(Gloomers.DropStatus.PRESALE);
+
+        vm.startPrank(signer);
+
+        string memory message = "attack at dawn";
+
+
+        assertEq(signature.length, 65);
+
+        console.logBytes(signature);
+
+
+
+        vm.stopPrank();
+
+        vm.startPrank(user);
+        // Give the user some ETH, just for good measure
+        vm.deal(user, 1 ether);
+
+        vm.warp(gloomers.WHITELIST_START_TIMESTAMP() + 1);
+        vm.stopPrank();
+    }
 }
