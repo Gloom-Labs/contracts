@@ -27,29 +27,46 @@ contract GloomersTest is Test {
     // Fallback function is called when msg.data is not empty
     fallback() external payable {}
 
-    function testInitialState() public view {
-        assertEq(gloomers.START_TOKEN_ID(), 6667);
+    function testInitialState() public {
+        vm.startPrank(user1);
+        assertEq(gloomers.START_TOKEN_ID(), 1);
         assertEq(gloomers.PRICE_PER_TOKEN(), 0.03 ether);
-        assertEq(gloomers.MAX_MINT_PER_WALLET(), 3);
+        assertEq(gloomers.getMintLimitPerWallet(), 3);
         assertEq(
             gloomers.PROVENANCE_HASH(),
             0x5158cf3ac201d8d9dfe63ac7c7d1e7aa58b7c33426665c9bf643e0003e095e2f
         );
         assertEq(gloomers.WHITELIST_START_TIMESTAMP(), 1714838400);
         assertEq(gloomers.PUBLIC_MINT_TIMESTAMP(), 1714838400 + 3 hours);
-        assertEq(uint256(gloomers.dropStatus()), 0);
+        assertEq(gloomers.mintingEnabled(), false);
+
+        vm.warp(gloomers.WHITELIST_START_TIMESTAMP() + 1);
+        assertEq(gloomers.getMintLimitPerWallet(), 3);
+
+        vm.warp(gloomers.PUBLIC_MINT_TIMESTAMP() + 1);
+        assertEq(gloomers.getMintLimitPerWallet(), 420);
+
+        vm.stopPrank();
     }
 
     function testSetTokenUri() public {
         // set drop status to PRESALE
-        Gloomers.DropStatus newDropStatus = Gloomers.DropStatus.PRESALE;
-        string memory originalURI = gloomers.tokenURI(3339);
-        string memory newBaseURI = "https://new.baseuri.com/";
+        gloomers.setMintingEnabled(true);
+        vm.warp(gloomers.PUBLIC_MINT_TIMESTAMP() + 1);
+        gloomers.mint{value: 0.03 ether}(1);
+        string memory originalURI = gloomers.tokenURI(1);
+        console.log("prereveal tokenURI(1)", originalURI);
+        string memory newBaseURI = "ipfs://newbaseuri/";
         gloomers.setTokenUri(newBaseURI);
+        vm.startPrank(user1);
         vm.expectRevert();
-        string memory newURI = gloomers.tokenURI(3339);
+        gloomers.setTokenUri("randomURIFromUnauthorizedCaller");
+        vm.stopPrank();
+
+        string memory newURI = gloomers.tokenURI(1);
+        console.log("postreveal tokenURI(1)", newURI);
         assertEq(
-            gloomers.tokenURI(3334),
+            gloomers.tokenURI(1),
             string(abi.encodePacked(newBaseURI, "1"))
         );
     }
@@ -66,12 +83,6 @@ contract GloomersTest is Test {
         assertEq(royaltyAmount, (1 ether * feeNumerator) / 10000);
     }
 
-    function testSetDropStatus() public {
-        Gloomers.DropStatus newDropStatus = Gloomers.DropStatus.PUBLIC;
-        gloomers.setDropStatus(newDropStatus);
-        assertEq(uint256(gloomers.dropStatus()), uint256(newDropStatus));
-    }
-
     function testWithdraw() public {
         uint256 balance = address(this).balance;
         payable(address(gloomers)).transfer(address(this).balance);
@@ -85,32 +96,29 @@ contract GloomersTest is Test {
 
     // test mint
     function testMint() public {
-        gloomers.setDropStatus(Gloomers.DropStatus.PUBLIC);
+        //vm.createSelectFork("https://mainnet.base.org");
+
+        gloomers.setMintingEnabled(true);
         vm.warp(gloomers.PUBLIC_MINT_TIMESTAMP() + 1);
 
-        gloomers.setTokenUri(
-            "ipfs://bafybeidnrgagzrjvavrsjtnz6qhqvnlbkz3vh5q35gfgkj236ylsxwpmsy/"
-        );
+        gloomers.setTokenUri("ipfs://newbaseuri/");
 
-        for (uint256 i = 6667; i <= 10000; i++) {
+        for (uint256 i = 1; i <= 3333; i++) {
             vm.deal(vm.addr(i), 1 ether);
             vm.prank(vm.addr(i));
             gloomers.mint{value: 0.03 ether}(1);
             console.log("TOKEN URI", gloomers.tokenURI(i));
             uint256[] memory tokenId = gloomers.tokensOfOwner(vm.addr(i));
+            console.log("tokenId", tokenId[0]);
         }
     }
 
     function testPresale() public {
-        bytes32 gloomerHash = keccak256(abi.encodePacked("gloomerHash2024"));
-        gloomers.setGloomerHash(gloomerHash);
-        gloomers.setDropStatus(Gloomers.DropStatus.PRESALE);
-
-        address user1 = address(0x1);
+        gloomers.setMintingEnabled(true);
 
         vm.startBroadcast();
         vm.deal(user1, 1 ether);
-        gloomers.registerPresale{value: 0.03 ether}(1, gloomerHash);
+        gloomers.registerPresale{value: 0.03 ether}(1);
 
         uint256 allocation = gloomers.getPresaleAllocation(user1);
         console.log("user1 allocation", allocation);
