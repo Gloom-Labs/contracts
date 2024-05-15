@@ -15,11 +15,12 @@ This repository contains the following contracts:
 
 ## Token details
 GloomToken.sol is a standard ERC20 without any tax / reflections. The contract has no owner, no minting functions, no admin functions, and is not upgradable.
-- name: Gloom
-- symbol: GLOOM
-- decimals: 18
-- total supply: 1,000,000,000 (1 billion)
-- tax / reflection: 0%
+- Name: Gloom
+- Symbol: GLOOM
+- Decimals: 18
+- Total supply: 1,000,000,000 (1 billion)
+- Circulating supply: 1,000,000,000 (1 billion)
+- Tax / reflection: 0%
 
 ## Deployed contracts
 
