@@ -17,7 +17,7 @@ contract DeployMigrationScript is Script {
         // console.log("DEPLOYER: ", deployer);
 
         GloomToken gloomToken;
-        GloomMigrator gloomMigrator;
+        // GloomMigrator gloomMigrator;
         GloomGovernor gloomGovernor;
 
         // 1. COMPUTE GLOOM MIGRATOR ADDRESS

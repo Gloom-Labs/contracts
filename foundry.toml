@@ -2,8 +2,9 @@
 src = "src"
 out = "out"
 libs = ["lib"]
+solc_version = "0.8.25"
+
 auto_detect_solc = true
 
-evm_version = "london"
-optimizer = true
-optimizer_runs = 200
+sender = '0x9dF0C6b0066D5317aA5b38B36850548DaCCa6B4e'
+tx_origin = '0x9dF0C6b0066D5317aA5b38B36850548DaCCa6B4e'

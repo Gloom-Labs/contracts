@@ -15,7 +15,7 @@ contract DeployMigrationScript is Script {
         GloomGovernor gloomGovernor;
 
         vm.startBroadcast();
-        address deployer = address(msg.sender);
+        // address deployer = address(msg.sender);
         // address deployer = address(msg.sender);
 
         // 4. DEPLOY GLOOM MIGRATOR

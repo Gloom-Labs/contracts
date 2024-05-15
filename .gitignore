@@ -4,7 +4,9 @@ out/
 bin/
 ztash/
 viem-tools/
-/lib
+
+/node_modules
+
 
 # Ignores development broadcast logs
 !/broadcast
@@ -18,3 +20,7 @@ docs/
 .env
 
 remappings.txt
+soljson-v0.6.12+commit.27d51765.js
+soljson-v0.8.25+commit.b61c2a91.js
+.gitmodules
+.gitmodules
